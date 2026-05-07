@@ -1,20 +1,25 @@
 import streamlit as st
 import io
 
-def convert_zip_to_sb3(zip_file):
+def convert_file(zip_file):
     """
-    Mengambil file ZIP dan mengembalikan byte data untuk file SB3.
-    Secara teknis hanya membaca ulang konten karena strukturnya identik.
+    Mengambil file ZIP dan mengembalikan byte data.
+    Format .sb3 dan .aia keduanya berbasis struktur ZIP.
     """
-    # Membaca file yang diunggah ke dalam memory
-    file_bytes = zip_file.getvalue()
-    return file_bytes
+    return zip_file.getvalue()
 
 # Konfigurasi Halaman
-st.set_page_config(page_title="ZIP to SB3 Converter", page_icon="🐱")
+st.set_page_config(page_title="Project Converter", page_icon="🛠️")
 
-st.title("📦 ZIP to SB3 Converter")
-st.write("Unggah file **.zip** Anda untuk diubah menjadi format **.sb3** Scratch.")
+st.title("📦 ZIP to SB3/AIA Converter")
+st.write("Unggah file **.zip** Anda untuk diubah menjadi format **.sb3** (Scratch) atau **.aia** (App Inventor).")
+
+# Pilihan Format Output
+output_format = st.radio(
+    "Pilih format tujuan:",
+    ('sb3', 'aia'),
+    horizontal=True
+)
 
 # Widget Unggah File
 uploaded_file = st.file_uploader("Pilih file ZIP", type="zip")
@@ -22,20 +27,29 @@ uploaded_file = st.file_uploader("Pilih file ZIP", type="zip")
 if uploaded_file is not None:
     # Ambil nama file asli tanpa ekstensi
     original_name = uploaded_file.name.rsplit('.', 1)[0]
-    new_filename = f"{original_name}.sb3"
+    new_filename = f"{original_name}.{output_format}"
     
-    st.success(f"File '{uploaded_file.name}' berhasil diunggah!")
+    # Tentukan MIME type berdasarkan pilihan
+    mime_type = "application/x-scratch3" if output_format == "sb3" else "application/zip"
     
-    # Proses konversi (membaca byte)
-    sb3_data = convert_zip_to_sb3(uploaded_file)
+    st.success(f"File '{uploaded_file.name}' siap dikonversi ke {output_format.upper()}!")
+    
+    # Proses konversi
+    converted_data = convert_file(uploaded_file)
     
     # Tombol Download
     st.download_button(
-        label="📥 Download File .sb3",
-        data=sb3_data,
+        label=f"📥 Download File .{output_format}",
+        data=converted_data,
         file_name=new_filename,
-        mime="application/x-scratch3"
+        mime=mime_type
     )
 
 st.divider()
-st.info("Catatan: Pastikan file ZIP Anda berisi struktur proyek Scratch yang valid (terdapat file project.json di dalamnya).")
+
+# Informasi Teknis
+with st.expander("Persyaratan Struktur File"):
+    if output_format == "sb3":
+        st.info("Untuk **.sb3**: Pastikan di dalam ZIP terdapat file `project.json`.")
+    else:
+        st.info("Untuk **.aia**: Pastikan ZIP memiliki struktur folder `src`, `assets`, dan file `project.properties` agar bisa dibaca oleh MIT App Inventor.")
